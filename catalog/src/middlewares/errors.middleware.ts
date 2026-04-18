@@ -1,11 +1,11 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { HTTP_STATUS, ERROR_MESSAGES } from "../config/constants";
 
 export const errorHandler = (
   error: Error,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   console.error(error);
 

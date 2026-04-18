@@ -1,10 +1,13 @@
 import { PrismaClient } from "@prisma/client";
-import { CreateOrderInput, UpdateOrderStatusInput, AddToCartInput, UpdateCartItemInput } from "../schemas/orders.schemas";
+import { PrismaPg } from "@prisma/adapter-pg";
+import type { CreateOrderInput, UpdateOrderStatusInput, AddToCartInput, UpdateCartItemInput } from "../schemas/orders.schemas";
 import { ERROR_MESSAGES } from "../config/constants";
 import axios from "axios";
 import { ENV } from "../config/env";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
 
 export class OrderService {
   // Order Methods
@@ -103,7 +106,7 @@ export class OrderService {
       data: {
         orderId: id,
         status: input.status as any,
-        note: input.note,
+        note: input.note ?? null,
       },
     });
 
@@ -167,14 +170,13 @@ export class OrderService {
       where: { cartId: cart.id, product_id: input.productId },
     });
 
-    let cartItem;
     if (existingItem) {
-      cartItem = await prisma.cartItem.update({
+      await prisma.cartItem.update({
         where: { id: existingItem.id },
         data: { quantity: existingItem.quantity + input.quantity },
       });
     } else {
-      cartItem = await prisma.cartItem.create({
+      await prisma.cartItem.create({
         data: {
           cartId: cart.id,
           product_id: input.productId,
@@ -228,7 +230,7 @@ export class OrderService {
 
     // Get product prices from catalog service
     const orderItems = await Promise.all(
-      cart.items.map(async (item) => {
+      cart.items.map(async (item: any) => {
         try {
           const response = await axios.get(
             `${ENV.CATALOG_SERVICE_URL}/catalog/products/${item.product_id}`

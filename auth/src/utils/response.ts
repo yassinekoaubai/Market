@@ -1,4 +1,4 @@
-import { Response } from "express";
+import type { Response } from "express";
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -35,13 +35,16 @@ export function sendError(
   statusCode: number = 500,
   data?: unknown
 ): Response {
-  return res.status(statusCode).json({
+  const response: ApiResponse = {
     success: false,
     message,
-    ...(data && { data }),
     timestamp: new Date().toISOString(),
-    requestId: res.getHeader("X-Request-ID"),
-  } as ApiResponse);
+    requestId: res.getHeader("X-Request-ID") as string,
+  };
+  if (data) {
+    response.data = data;
+  }
+  return res.status(statusCode).json(response);
 }
 
 /**

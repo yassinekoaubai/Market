@@ -1,8 +1,11 @@
 import { PrismaClient } from "@prisma/client";
-import { CreateProductInput, UpdateProductInput, CreateCategoryInput, UpdateCategoryInput, SearchProductInput } from "../schemas/catalog.schemas";
+import { PrismaPg } from "@prisma/adapter-pg";
+import type { CreateProductInput, UpdateProductInput, CreateCategoryInput, UpdateCategoryInput, SearchProductInput } from "../schemas/catalog.schemas";
 import { ERROR_MESSAGES } from "../config/constants";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
 
 export class CatalogService {
   // Product Methods
@@ -16,7 +19,10 @@ export class CatalogService {
     }
 
     const product = await prisma.product.create({
-      data: input,
+      data: {
+        ...input,
+        image_url: input.image_url ?? null,
+      },
       include: { category: true },
     });
 
@@ -56,7 +62,15 @@ export class CatalogService {
 
     const updated = await prisma.product.update({
       where: { id },
-      data: input,
+      data: {
+        ...(input.name !== undefined && { name: input.name }),
+        ...(input.description !== undefined && { description: input.description }),
+        ...(input.price !== undefined && { price: input.price }),
+        ...(input.quantity !== undefined && { quantity: input.quantity }),
+        ...(input.sku !== undefined && { sku: input.sku }),
+        ...(input.categoryId !== undefined && { categoryId: input.categoryId }),
+        ...(input.image_url !== undefined && { image_url: input.image_url }),
+      },
       include: { category: true },
     });
 
@@ -139,7 +153,10 @@ export class CatalogService {
   // Category Methods
   static async createCategory(input: CreateCategoryInput) {
     const category = await prisma.category.create({
-      data: input,
+      data: {
+        ...input,
+        image_url: input.image_url ?? null,
+      },
     });
 
     return category;
@@ -176,7 +193,11 @@ export class CatalogService {
 
     const updated = await prisma.category.update({
       where: { id },
-      data: input,
+      data: {
+        ...(input.name !== undefined && { name: input.name }),
+        ...(input.description !== undefined && { description: input.description }),
+        ...(input.image_url !== undefined && { image_url: input.image_url }),
+      },
     });
 
     return updated;

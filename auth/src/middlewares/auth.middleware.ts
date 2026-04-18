@@ -1,7 +1,6 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { JwtService } from "../services/jwt.service";
 import { HTTP_STATUS, ERROR_MESSAGES } from "../config/constants";
-import { AuthUser } from "../types/auth.types";
 
 /**
  * Middleware to verify JWT token
@@ -96,9 +95,9 @@ export const isAdmin = (
  */
 export const errorHandler = (
   error: Error,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   console.error(error);
 

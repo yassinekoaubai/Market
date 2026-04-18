@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { CatalogService } from "../services/catalog.service";
 import {
   createProductSchema,
@@ -38,7 +38,7 @@ export class CatalogController {
 
   static async getProduct(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = Number(req.params.id);
       const product = await CatalogService.getProduct(id);
 
       res.status(HTTP_STATUS.OK).json({
@@ -62,7 +62,7 @@ export class CatalogController {
 
   static async updateProduct(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = Number(req.params.id);
       const validatedData = updateProductSchema.parse(req.body);
       const product = await CatalogService.updateProduct(id, validatedData);
 
@@ -88,7 +88,7 @@ export class CatalogController {
 
   static async deleteProduct(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = Number(req.params.id);
       await CatalogService.deleteProduct(id);
 
       res.status(HTTP_STATUS.OK).json({
@@ -135,9 +135,9 @@ export class CatalogController {
 
   static async getProductsByCategory(req: Request, res: Response): Promise<void> {
     try {
-      const categoryId = parseInt(req.params.categoryId);
-      const limit = parseInt(req.query.limit as string) || 10;
-      const offset = parseInt(req.query.offset as string) || 0;
+      const categoryId = Number(req.params.categoryId);
+      const limit = Number(req.query.limit as string) || 10;
+      const offset = Number(req.query.offset as string) || 0;
 
       const result = await CatalogService.getProductsByCategory(categoryId, limit, offset);
 
@@ -179,7 +179,7 @@ export class CatalogController {
 
   static async getCategory(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = Number(req.params.id);
       const category = await CatalogService.getCategory(id);
 
       res.status(HTTP_STATUS.OK).json({
@@ -201,7 +201,7 @@ export class CatalogController {
     }
   }
 
-  static async getAllCategories(req: Request, res: Response): Promise<void> {
+  static async getAllCategories(_req: Request, res: Response): Promise<void> {
     try {
       const categories = await CatalogService.getAllCategories();
 
@@ -219,7 +219,7 @@ export class CatalogController {
 
   static async updateCategory(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = Number(req.params.id);
       const validatedData = updateCategorySchema.parse(req.body);
       const category = await CatalogService.updateCategory(id, validatedData);
 
@@ -237,7 +237,7 @@ export class CatalogController {
 
   static async deleteCategory(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = Number(req.params.id);
       await CatalogService.deleteCategory(id);
 
       res.status(HTTP_STATUS.OK).json({

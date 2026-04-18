@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { ENV } from "../config/env";
-import { TokenPayload } from "../types/auth.types";
+import type { TokenPayload } from "../types/auth.types";
 
 export class JwtService {
   /**
@@ -8,9 +8,9 @@ export class JwtService {
    */
   static generateAccessToken(payload: TokenPayload): string {
     try {
-      const token = jwt.sign(payload, ENV.JWT_SECRET, {
-        expiresIn: ENV.JWT_EXPIRE_IN,
-      });
+      const token = jwt.sign(payload, ENV.JWT_SECRET as string, {
+        expiresIn: ENV.JWT_EXPIRES_IN,
+      } as any);
       return token;
     } catch (error) {
       throw new Error("Error generating access token");
@@ -22,9 +22,9 @@ export class JwtService {
    */
   static generateRefreshToken(payload: TokenPayload): string {
     try {
-      const token = jwt.sign(payload, ENV.JWT_SECRET, {
+      const token = jwt.sign(payload, ENV.JWT_SECRET as string, {
         expiresIn: ENV.JWT_REFRESH_EXPIRE_IN,
-      });
+      } as any);
       return token;
     } catch (error) {
       throw new Error("Error generating refresh token");

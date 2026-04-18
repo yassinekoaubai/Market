@@ -1,4 +1,5 @@
-import express, { Request, Response } from "express";
+import express from "express";
+import type { Request, Response } from "express";
 import cors from "cors";
 import { ENV, isDevelopment } from "./config/env";
 import { errorHandler } from "./middlewares/errors.middleware";
@@ -17,7 +18,7 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 // Request logging
 if (isDevelopment) {
-  app.use((req: Request, res: Response, next) => {
+  app.use((req: Request, _res: Response, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
     next();
   });
@@ -27,7 +28,7 @@ if (isDevelopment) {
 app.use("/catalog", catalogRoutes);
 
 // Health check
-app.get("/health", (req: Request, res: Response) => {
+app.get("/health", (_req: Request, res: Response) => {
   res.status(HTTP_STATUS.OK).json({
     success: true,
     message: "Catalog service is running",
@@ -36,7 +37,7 @@ app.get("/health", (req: Request, res: Response) => {
 });
 
 // 404 handler
-app.use((req: Request, res: Response) => {
+app.use((_req: Request, res: Response) => {
   res.status(HTTP_STATUS.NOT_FOUND).json({
     success: false,
     message: "Route not found",

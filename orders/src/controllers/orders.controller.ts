@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { OrderService } from "../services/orders.service";
 import {
   createOrderSchema,
@@ -37,7 +37,7 @@ export class OrderController {
 
   static async getOrder(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = Number(req.params.id);
       const order = await OrderService.getOrder(id);
 
       res.status(HTTP_STATUS.OK).json({
@@ -61,9 +61,9 @@ export class OrderController {
 
   static async getUserOrders(req: Request, res: Response): Promise<void> {
     try {
-      const userId = parseInt(req.params.userId);
-      const limit = parseInt(req.query.limit as string) || 10;
-      const offset = parseInt(req.query.offset as string) || 0;
+      const userId = Number(req.params.userId);
+      const limit = Number(req.query.limit as string) || 10;
+      const offset = Number(req.query.offset as string) || 0;
 
       const result = await OrderService.getUserOrders(userId, limit, offset);
 
@@ -86,7 +86,7 @@ export class OrderController {
 
   static async updateOrderStatus(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = Number(req.params.id);
       const validatedData = updateOrderStatusSchema.parse(req.body);
       const order = await OrderService.updateOrderStatus(id, validatedData);
 
@@ -112,7 +112,7 @@ export class OrderController {
 
   static async cancelOrder(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = Number(req.params.id);
       const order = await OrderService.cancelOrder(id);
 
       res.status(HTTP_STATUS.OK).json({
@@ -138,7 +138,7 @@ export class OrderController {
   // Cart Endpoints
   static async getCart(req: Request, res: Response): Promise<void> {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = Number(req.params.userId);
       const cart = await OrderService.getOrCreateCart(userId);
 
       res.status(HTTP_STATUS.OK).json({
@@ -155,7 +155,7 @@ export class OrderController {
 
   static async addToCart(req: Request, res: Response): Promise<void> {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = Number(req.params.userId);
       const validatedData = addToCartSchema.parse(req.body);
       const cart = await OrderService.addToCart(userId, validatedData);
 
@@ -181,8 +181,8 @@ export class OrderController {
 
   static async updateCartItem(req: Request, res: Response): Promise<void> {
     try {
-      const userId = parseInt(req.params.userId);
-      const productId = parseInt(req.params.productId);
+      const userId = Number(req.params.userId);
+      const productId = Number(req.params.productId);
       const validatedData = updateCartItemSchema.parse(req.body);
       const cart = await OrderService.updateCartItem(userId, productId, validatedData);
 
@@ -208,7 +208,7 @@ export class OrderController {
 
   static async clearCart(req: Request, res: Response): Promise<void> {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = Number(req.params.userId);
       const cart = await OrderService.clearCart(userId);
 
       res.status(HTTP_STATUS.OK).json({
@@ -226,7 +226,7 @@ export class OrderController {
 
   static async checkoutCart(req: Request, res: Response): Promise<void> {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = Number(req.params.userId);
       const order = await OrderService.checkoutCart(userId);
 
       res.status(HTTP_STATUS.CREATED).json({

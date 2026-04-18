@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "rootDir": "./src",
+    "ignoreDeprecations": "6.0",
+    "rootDir": ".",
     "outDir": "./dist",
     "module": "ES2020",
     "target": "ES2020",
@@ -22,8 +23,12 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force"
+    "moduleDetection": "force",
+    "baseUrl": ".",
+    "paths": {
+      "@prisma/*": ["generated/prisma/*"]
+    }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "generated/**/*"],
   "exclude": ["node_modules", "dist"]
 }

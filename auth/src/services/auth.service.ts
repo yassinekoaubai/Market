@@ -1,10 +1,13 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PasswordService } from "./password.service";
 import { JwtService } from "./jwt.service";
-import { AuthResponse, Tokens, TokenPayload } from "../types/auth.types";
+import type { AuthResponse, Tokens, TokenPayload } from "../types/auth.types";
 import { ERROR_MESSAGES } from "../config/constants";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
 
 export class AuthService {
   /**

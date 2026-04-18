@@ -1,7 +1,6 @@
-import { Express } from "express";
+import type { Express } from "express";
 import express from "express";
 import cors from "cors";
-import { ENV } from "./env";
 import { isDevelopment } from "./env";
 
 /**
@@ -11,7 +10,7 @@ export function configureMiddleware(app: Express): void {
   // CORS middleware
   app.use(
     cors({
-      origin: ENV.CORS_ORIGIN.split(",").map((origin) => origin.trim()),
+      origin: (process.env.CORS_ORIGIN || "*").split(",").map((origin) => origin.trim()),
       credentials: true,
       optionsSuccessStatus: 200,
     })

@@ -1,4 +1,5 @@
-import express, { Request, Response } from "express";
+import express from "express";
+import type { Request, Response } from "express";
 import { ENV, isDevelopment } from "./config/env";
 import { configureMiddleware } from "./config/middleware";
 import { errorHandler } from "./middlewares/auth.middleware";
@@ -14,7 +15,7 @@ configureMiddleware(app);
 app.use("/auth", authRoutes);
 
 // Health check
-app.get("/health", (req: Request, res: Response) => {
+app.get("/health", (_req: Request, res: Response) => {
   res.status(HTTP_STATUS.OK).json({
     success: true,
     message: "Server is running",
