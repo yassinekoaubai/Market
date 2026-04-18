@@ -1,0 +1,103 @@
+# 🎯 Premiers Pas - Quick Reference
+
+## Commandes Essentielles
+
+```bash
+# 1️⃣ Installation
+npm install
+
+# 2️⃣ Configuration
+cp .env.example .env
+# ÉDITER .env avec vos paramètres PostgreSQL
+
+# 3️⃣ Base de données
+npm run db:migrate      # Créer tables
+npm run db:seed         # Ajouter données test
+
+# 4️⃣ Démarrer
+npm run dev             # http://localhost:3000
+
+# 5️⃣ Tester
+curl http://localhost:3000/health
+```
+
+## Test Rapide d'un Endpoint
+
+```bash
+# Enregistrement
+curl -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "Password123",
+    "confirmPassword": "Password123",
+    "name": "Test User",
+    "phone": "+1234567890"
+  }'
+
+# Connexion
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "Password123"
+  }'
+```
+
+## Documents Importants
+
+| Document | Pour Quoi |
+|----------|-----------|
+| `README.md` | Documentation complète |
+| `QUICKSTART.md` | Démarrage rapide |
+| `TESTING.md` | Exemples API |
+| `INTEGRATION_GUIDE.md` | Intégrer dans votre app |
+| `ADVANCED_CONFIG.md` | Config avancée |
+
+## Structure d'Accès aux Fichiers
+
+```
+/auth
+ ├── src/              → Code source TypeScript
+ ├── prisma/           → Schéma BD
+ ├── .env.example      → Config template
+ ├── README.md         → Documentation
+ └── TESTING.md        → Exemples API
+```
+
+## Variables .env Obligatoires
+
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/auth_db"
+JWT_SECRET="changez_cette_valeur_en_production"
+```
+
+## Données de Test (après seed)
+
+```
+Admin: admin@example.com / AdminPass123
+User: user@example.com / UserPass123
+```
+
+## Problèmes Courants
+
+❌ **"Cannot connect to database"**
+→ Vérifiez `DATABASE_URL` dans `.env`
+
+❌ **"Port 3000 already in use"**
+→ Changez `PORT` dans `.env` ou tuez le processus
+
+❌ **"Migration failed"**
+→ Lancez `npm run db:reset`
+
+## 🚀 Ensuite
+
+1. Lire `README.md` pour la doc complète
+2. Consulter `TESTING.md` pour les exemples
+3. Voir `INTEGRATION_GUIDE.md` pour intégrer
+4. Customizer selon vos besoins
+5. Déployer sur votre serveur
+
+---
+
+**Besoin d'aide?** Voir les fichiers `*.md` dans le dossier `auth/`

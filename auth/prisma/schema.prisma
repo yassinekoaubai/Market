@@ -1,0 +1,43 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+model User {
+  id             Int             @id @default(autoincrement())
+  name           String
+  email          String          @unique
+  phone          String          @unique
+  password_hash  String
+  email_verified Boolean         @default(false)
+  role           Role            @default(USER)
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
+  RefreshTokens  RefreshTokens[]
+}
+
+model RefreshTokens {
+  id          Int      @id @default(autoincrement())
+  token       String
+  expires_at  DateTime
+  revoked     Boolean
+  created_at  DateTime @default(now())
+  device_info String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+}
+
+enum Role {
+  USER
+  ADMIN
+}
