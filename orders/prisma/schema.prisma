@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  order_number    String      @unique
+  user_id         Int
+  total_amount    Float
+  status          OrderStatus @default(PENDING)
+  payment_status  PaymentStatus @default(UNPAID)
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+  items           OrderItem[]
+  history         OrderHistory[]
+}
+
+model OrderItem {
+  id          Int     @id @default(autoincrement())
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     Int
+  product_id  Int
+  quantity    Int
+  unit_price  Float
+  subtotal    Float
+}
+
+model OrderHistory {
+  id          Int       @id @default(autoincrement())
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     Int
+  status      OrderStatus
+  note        String?   @db.Text
+  created_at  DateTime  @default(now())
+}
+
+model Cart {
+  id          Int       @id @default(autoincrement())
+  user_id     Int       @unique
+  items       CartItem[]
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+}
+
+model CartItem {
+  id          Int     @id @default(autoincrement())
+  cart        Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId      Int
+  product_id  Int
+  quantity    Int
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  FAILED
+  REFUNDED
+}

@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+model Category {
+  id          Int           @id @default(autoincrement())
+  name        String        @unique
+  description String        @db.Text
+  image_url   String?
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  products    Product[]
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String    @db.Text
+  price       Float
+  quantity    Int       @default(0)
+  sku         String    @unique
+  image_url   String?
+  category    Category  @relation(fields: [categoryId], references: [id])
+  categoryId  Int
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  ratings     Rating[]
+}
+
+model Rating {
+  id        Int     @id @default(autoincrement())
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId Int
+  userId    Int
+  score     Int     @db.SmallInt
+  review    String? @db.Text
+  created_at DateTime @default(now())
+}
