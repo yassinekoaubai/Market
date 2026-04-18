@@ -1,0 +1,86 @@
+# Docker Compose for Jenkins Setup
+
+version: '3.8'
+
+services:
+  # Jenkins Master
+  jenkins:
+    image: jenkins/jenkins:2.387-jdk17
+    container_name: jenkins-master
+    ports:
+      - "8080:8080"      # Jenkins UI
+      - "50000:50000"    # Agent communication
+    environment:
+      JENKINS_OPTS: |
+        -Djenkins.install.runSetupWizard=false
+        -Dcom.sun.akuma.Launcher=com.sun.akuma.UNIXLauncher
+        -Djava.awt.headless=true
+      CASC_JENKINS_CONFIG: /var/jenkins_home/casc.yaml
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+      - ./jenkins.yml:/var/jenkins_home/casc.yaml:ro
+    networks:
+      - market-network
+    restart: unless-stopped
+    healthcheck:
+      test: curl -f http://localhost:8080/login || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Jenkins Agent (Docker-based)
+  jenkins-agent:
+    image: jenkins/agent:latest-jdk17
+    container_name: jenkins-agent-1
+    environment:
+      JENKINS_URL: http://jenkins:8080
+      JENKINS_SECRET: ${JENKINS_AGENT_SECRET}
+      JENKINS_AGENT_NAME: docker-agent-1
+      JENKINS_AGENT_WORKDIR: /home/jenkins/agent
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+      - jenkins_agent_1:/home/jenkins/agent
+    networks:
+      - market-network
+    depends_on:
+      jenkins:
+        condition: service_healthy
+    restart: unless-stopped
+    user: jenkins
+
+  # PostgreSQL for test data
+  postgres:
+    image: postgres:15-alpine
+    container_name: jenkins-postgres
+    environment:
+      POSTGRES_USER: market_user
+      POSTGRES_PASSWORD: market_password
+      POSTGRES_DB: jenkins_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - market-network
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U market_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+networks:
+  market-network:
+    driver: bridge
+
+volumes:
+  jenkins_home:
+    driver: local
+  jenkins_agent_1:
+    driver: local
+  postgres_data:
+    driver: local

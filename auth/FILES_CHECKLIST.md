@@ -70,7 +70,6 @@
 ### Déploiement
 - ✅ `Dockerfile` - Image Docker multi-stage
 - ✅ `docker-compose.yml` - Orchestration Docker
-- ✅ `.github/workflows/ci-cd.yml` - Pipeline CI/CD
 
 ### Utilitaires
 - ✅ `commands.sh` - Commandes shell utiles
@@ -81,9 +80,6 @@
 
 ```
 auth/
-├── .github/
-│   └── workflows/
-│       └── ci-cd.yml
 ├── src/
 │   ├── config/
 │   │   ├── constants.ts                 (✅ 30 lignes)

@@ -98,7 +98,6 @@
 
 ```
 auth/
-├── ✅ .github/workflows/ci-cd.yml
 ├── ✅ src/
 │   ├── config/ (constants.ts, env.ts, middleware.ts)
 │   ├── controllers/ (auth.controller.ts)

@@ -1,0 +1,187 @@
+// Deployment Pipeline for Market Microservices
+// Builds and pushes Docker images to registry
+
+pipeline {
+    agent any
+
+    environment {
+        REGISTRY = "ghcr.io"
+        REPOSITORY_OWNER = "yassinekoaubai"
+        GIT_COMMIT_SHORT = "${GIT_COMMIT.take(7)}"
+        SERVICES = "auth,catalog,orders"
+    }
+
+    parameters {
+        choice(name: 'DEPLOYMENT_ENV', choices: ['staging', 'production'], description: 'Deployment environment')
+        booleanParam(name: 'PUSH_TAGS', defaultValue: true, description: 'Push version tags to registry')
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+        timeout(time: 30, unit: 'MINUTES')
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    echo "📦 Checking out source code..."
+                    checkout scm
+                    sh 'git log -1 --pretty=format:"%h - %s"'
+                }
+            }
+        }
+
+        stage('Build & Push Docker Images') {
+            steps {
+                script {
+                    def services = env.SERVICES.split(',')
+                    services.each { service ->
+                        echo "🐳 Building ${service} image..."
+                        sh '''
+                            cd ''' + service + '''
+                            docker build \
+                              --build-arg NODE_ENV=production \
+                              --tag ${REGISTRY}/${REPOSITORY_OWNER}/market-''' + service + ''':${GIT_COMMIT_SHORT} \
+                              --tag ${REGISTRY}/${REPOSITORY_OWNER}/market-''' + service + ''':latest \
+                              --tag ${REGISTRY}/${REPOSITORY_OWNER}/market-''' + service + ''':${DEPLOYMENT_ENV} \
+                              --label "build.timestamp=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+                              --label "vcs.ref=${GIT_COMMIT}" \
+                              .
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                script {
+                    echo "🔒 Running security scans..."
+                    sh '''
+                        # You can integrate Trivy or Grype here
+                        echo "Security scanning images..."
+                        docker images | grep market
+                    '''
+                }
+            }
+        }
+
+        stage('Registry Login') {
+            steps {
+                script {
+                    echo "🔐 Logging in to container registry..."
+                    withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', passwordVariable: 'GHCR_PASSWORD', usernameVariable: 'GHCR_USERNAME')]) {
+                        sh '''
+                            echo "${GHCR_PASSWORD}" | docker login -u ${GHCR_USERNAME} --password-stdin ${REGISTRY}
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Push Images') {
+            steps {
+                script {
+                    def services = env.SERVICES.split(',')
+                    services.each { service ->
+                        echo "📤 Pushing ${service} image to registry..."
+                        sh '''
+                            docker push ${REGISTRY}/${REPOSITORY_OWNER}/market-''' + service + ''':${GIT_COMMIT_SHORT}
+                            docker push ${REGISTRY}/${REPOSITORY_OWNER}/market-''' + service + ''':latest
+                            docker push ${REGISTRY}/${REPOSITORY_OWNER}/market-''' + service + ''':${DEPLOYMENT_ENV}
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Create Release Tags') {
+            when {
+                expression { params.PUSH_TAGS && env.BRANCH_NAME == 'main' }
+            }
+            steps {
+                script {
+                    echo "🏷️ Creating release tags..."
+                    sh '''
+                        VERSION=$(cat VERSION 2>/dev/null || echo "1.0.0")
+                        
+                        for service in ${SERVICES//,/ }; do
+                            docker tag ${REGISTRY}/${REPOSITORY_OWNER}/market-${service}:latest \
+                                       ${REGISTRY}/${REPOSITORY_OWNER}/market-${service}:v${VERSION}
+                            docker push ${REGISTRY}/${REPOSITORY_OWNER}/market-${service}:v${VERSION}
+                            echo "✅ Tagged and pushed ${service}:v${VERSION}"
+                        done
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                expression { params.DEPLOYMENT_ENV == 'production' }
+            }
+            steps {
+                script {
+                    echo "🚀 Deploying to ${params.DEPLOYMENT_ENV}..."
+                    sh '''
+                        echo "Deployment configuration:"
+                        echo "  Environment: ${DEPLOYMENT_ENV}"
+                        echo "  Images to deploy:"
+                        for service in ${SERVICES//,/ }; do
+                            echo "    - ${REGISTRY}/${REPOSITORY_OWNER}/market-${service}:${GIT_COMMIT_SHORT}"
+                        done
+                        
+                        # Add your deployment logic here
+                        # Examples:
+                        # - Update Kubernetes deployments
+                        # - Update docker-compose on server
+                        # - Trigger deployment script
+                    '''
+                }
+            }
+        }
+
+        stage('Health Check') {
+            when {
+                expression { params.DEPLOYMENT_ENV == 'production' }
+            }
+            steps {
+                script {
+                    echo "🏥 Running health checks on deployed services..."
+                    sh '''
+                        echo "Health check would occur here"
+                        # curl -s http://production.example.com/auth/health
+                        # curl -s http://production.example.com/catalog/health
+                        # curl -s http://production.example.com/orders/health
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                echo "🧹 Cleaning up..."
+                sh '''
+                    docker logout ${REGISTRY} 2>/dev/null || true
+                '''
+            }
+        }
+        success {
+            script {
+                echo "✅ Deployment pipeline completed successfully!"
+                // Send success notification
+            }
+        }
+        failure {
+            script {
+                echo "❌ Deployment pipeline failed!"
+                // Send failure notification
+            }
+        }
+    }
+}

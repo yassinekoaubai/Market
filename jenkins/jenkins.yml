@@ -1,0 +1,213 @@
+# Jenkins Infrastructure Configuration
+
+# Global Jenkins configuration for running Market microservices pipelines
+# This file can be used with Jenkins Configuration as Code (JCass) plugin
+
+jenkins:
+  systemMessage: "Market Microservices CI/CD Pipeline"
+  
+  # Security configuration
+  securityRealm:
+    saml:
+      binding: "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+      displayNameAttributeName: "name"
+      groupsAttributeName: "groups"
+      idpMetadataConfiguration:
+        url: "https://example.com/auth/metadata"
+      
+  authorizationStrategy:
+    projectMatrix:
+      permissions:
+        - "hudson.model.Item.Build:authenticated"
+        - "hudson.model.Item.Cancel:authenticated"
+        - "hudson.model.Item.Read:authenticated"
+        - "hudson.model.Run.Delete:authenticated"
+        - "hudson.model.View.Read:authenticated"
+
+  # Agent configuration
+  nodes:
+    - permanent:
+        name: "linux-docker"
+        remoteFS: "/home/jenkins"
+        numExecutors: 4
+        mode: NORMAL
+        launcher:
+          ssh:
+            host: "agent.example.com"
+            port: 22
+            credentialsId: "ssh-agent-key"
+            javaPath: "/usr/bin/java"
+            prefixStartSlaveCmd: ""
+            suffixStartSlaveCmd: ""
+            launchTimeoutSeconds: 60
+            maxNumRetries: 3
+            retryWaitTime: 15
+        labels: "linux docker kubernetes"
+        
+  # Credentials
+  credentials:
+    system:
+      domainCredentials:
+        - credentials:
+            - usernamePassword:
+                scope: GLOBAL
+                id: "ghcr-credentials"
+                username: "${GHCR_USERNAME}"
+                password: "${GHCR_PASSWORD}"
+                description: "GHCR credentials for image push"
+            
+            - sshUserPrivateKey:
+                scope: GLOBAL
+                id: "ssh-agent-key"
+                username: "jenkins"
+                privateKeySource:
+                  directEntry:
+                    privateKey: "${SSH_PRIVATE_KEY}"
+                description: "SSH key for Jenkins agents"
+
+# Global properties
+unclassified:
+  location:
+    url: "https://jenkins.example.com/"
+  
+  # Docker configuration
+  docker:
+    server:
+      uri: "unix:///var/run/docker.sock"
+    credentialsId: ""
+    apiVersion: ""
+    connectTimeout: 600
+    readTimeout: 600
+    
+  # GitHub integration
+  ghprb:
+    gitHubApiUrl: "https://api.github.com"
+    credentialsId: "github-app"
+    
+  # Email configuration
+  mailer:
+    smtpHost: "smtp.example.com"
+    smtpPort: 587
+    useSMTPAuth: true
+    smtpAuthUsername: "${SMTP_USERNAME}"
+    smtpAuthPassword: "${SMTP_PASSWORD}"
+    replyToAddress: "jenkins@example.com"
+    charset: "UTF-8"
+
+# Pipeline configuration
+tool:
+  git:
+    installations:
+      - name: "Default"
+        home: "git"
+        
+  nodejs:
+    installations:
+      - name: "Node.js 20"
+        home: ""
+        properties:
+          - installSource:
+              installers:
+                - nodeJSInstaller:
+                    id: "20.13.0"
+                    npmPackages: ""
+                    performCleanup: true
+                    
+      - name: "Node.js 22"
+        home: ""
+        properties:
+          - installSource:
+              installers:
+                - nodeJSInstaller:
+                    id: "22.0.0"
+                    npmPackages: ""
+                    performCleanup: true
+
+# Build configuration
+jobs:
+  - script: >
+      pipelineJob('market-main') {
+        description('Main CI/CD pipeline for Market microservices')
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('https://github.com/yassinekoaubai/Market.git')
+                  credentials('github-app')
+                }
+                branch('*/main')
+              }
+            }
+            scriptPath('Jenkinsfile')
+          }
+        }
+        triggers {
+          githubPush()
+          pollSCM('H/15 * * * *')
+        }
+        properties {
+          disableResume()
+        }
+        logRotator {
+          daysToKeepStr('30')
+          numToKeepStr('10')
+          artifactDaysToKeepStr('7')
+          artifactNumToKeepStr('5')
+        }
+      }
+
+  - script: >
+      pipelineJob('market-e2e-tests') {
+        description('End-to-end testing pipeline')
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('https://github.com/yassinekoaubai/Market.git')
+                  credentials('github-app')
+                }
+                branch('*/main')
+              }
+            }
+            scriptPath('jenkins/Jenkinsfile.e2e')
+          }
+        }
+        triggers {
+          githubPush()
+          cron('0 2 * * *')
+        }
+        logRotator {
+          daysToKeepStr('30')
+          numToKeepStr('5')
+        }
+      }
+
+  - script: >
+      pipelineJob('market-deploy') {
+        description('Production deployment pipeline')
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('https://github.com/yassinekoaubai/Market.git')
+                  credentials('github-app')
+                }
+                branch('*/main')
+              }
+            }
+            scriptPath('jenkins/Jenkinsfile.deploy')
+          }
+        }
+        triggers {
+          githubPush()
+        }
+        logRotator {
+          daysToKeepStr('60')
+          numToKeepStr('5')
+          artifactDaysToKeepStr('30')
+          artifactNumToKeepStr('3')
+        }
+      }

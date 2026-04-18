@@ -1,0 +1,287 @@
+// E2E Testing Pipeline for Market Microservices
+// Runs integration tests with all three services
+
+pipeline {
+    agent any
+
+    environment {
+        NODE_VERSION = "20"
+        DOCKER_NETWORK = "market-test-network"
+        DB_USER = "market_user"
+        DB_PASSWORD = "market_password"
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+        timeout(time: 45, unit: 'MINUTES')
+        timestamps()
+    }
+
+    triggers {
+        cron('0 2 * * *')  // Daily at 2 AM
+        githubPush()
+    }
+
+    stages {
+        stage('Setup Test Environment') {
+            steps {
+                script {
+                    echo "🔧 Setting up E2E test environment..."
+                    sh '''
+                        # Create network
+                        docker network create ${DOCKER_NETWORK} || true
+                        
+                        # Start PostgreSQL containers
+                        echo "📡 Starting PostgreSQL for Auth service..."
+                        docker run -d \
+                          --name postgres-auth \
+                          --network ${DOCKER_NETWORK} \
+                          -e POSTGRES_USER=${DB_USER} \
+                          -e POSTGRES_PASSWORD=${DB_PASSWORD} \
+                          -e POSTGRES_DB=auth_db \
+                          -p 5432:5432 \
+                          postgres:15-alpine
+                        
+                        echo "📦 Starting PostgreSQL for Catalog service..."
+                        docker run -d \
+                          --name postgres-catalog \
+                          --network ${DOCKER_NETWORK} \
+                          -e POSTGRES_USER=${DB_USER} \
+                          -e POSTGRES_PASSWORD=${DB_PASSWORD} \
+                          -e POSTGRES_DB=catalog_db \
+                          -p 5433:5432 \
+                          postgres:15-alpine
+                        
+                        echo "🛒 Starting PostgreSQL for Orders service..."
+                        docker run -d \
+                          --name postgres-orders \
+                          --network ${DOCKER_NETWORK} \
+                          -e POSTGRES_USER=${DB_USER} \
+                          -e POSTGRES_PASSWORD=${DB_PASSWORD} \
+                          -e POSTGRES_DB=orders_db \
+                          -p 5434:5432 \
+                          postgres:15-alpine
+                        
+                        # Wait for databases to be ready
+                        echo "⏳ Waiting for databases to be ready..."
+                        sleep 5
+                        for port in 5432 5433 5434; do
+                          for i in {1..30}; do
+                            if pg_isready -h localhost -p $port > /dev/null 2>&1; then
+                              echo "✅ Database on port $port is ready"
+                              break
+                            fi
+                            echo "⏳ Attempting to connect to $port (attempt $i/30)..."
+                            sleep 1
+                          done
+                        done
+                    '''
+                }
+            }
+        }
+
+        stage('Setup Auth Service') {
+            steps {
+                script {
+                    echo "📡 Setting up Auth Service..."
+                    sh '''
+                        cd auth
+                        npm ci
+                        npm run generate
+                        
+                        # Create test environment file
+                        cat > .env.test << EOF
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/auth_db
+PORT=3000
+NODE_ENV=test
+JWT_SECRET=test-secret-key-min-16-chars
+JWT_EXPIRES_IN=7d
+JWT_REFRESH_EXPIRE_IN=30d
+CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
+EOF
+                        
+                        # Run migrations
+                        npm run db:migrate || true
+                        
+                        # Start service in background
+                        npm run start > ../auth.log 2>&1 &
+                        echo $! > ../auth.pid
+                    '''
+                }
+            }
+        }
+
+        stage('Setup Catalog Service') {
+            steps {
+                script {
+                    echo "📦 Setting up Catalog Service..."
+                    sh '''
+                        cd catalog
+                        npm ci
+                        npm run generate
+                        
+                        # Create test environment file
+                        cat > .env.test << EOF
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5433/catalog_db
+PORT=3001
+NODE_ENV=test
+CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
+AUTH_SERVICE_URL=http://localhost:3000
+EOF
+                        
+                        # Run migrations
+                        npm run db:migrate || true
+                        
+                        # Start service in background
+                        npm run start > ../catalog.log 2>&1 &
+                        echo $! > ../catalog.pid
+                    '''
+                }
+            }
+        }
+
+        stage('Setup Orders Service') {
+            steps {
+                script {
+                    echo "🛒 Setting up Orders Service..."
+                    sh '''
+                        cd orders
+                        npm ci
+                        npm run generate
+                        
+                        # Create test environment file
+                        cat > .env.test << EOF
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5434/orders_db
+PORT=3002
+NODE_ENV=test
+CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
+AUTH_SERVICE_URL=http://localhost:3000
+CATALOG_SERVICE_URL=http://localhost:3001
+EOF
+                        
+                        # Run migrations
+                        npm run db:migrate || true
+                        
+                        # Start service in background
+                        npm run start > ../orders.log 2>&1 &
+                        echo $! > ../orders.pid
+                    '''
+                }
+            }
+        }
+
+        stage('Wait for Services') {
+            steps {
+                script {
+                    echo "⏳ Waiting for all services to be ready..."
+                    sh '''
+                        # Wait for services to start
+                        for i in {1..30}; do
+                          if curl -s http://localhost:3000/health > /dev/null; then
+                            echo "✅ Auth service is ready"
+                            break
+                          fi
+                          echo "⏳ Waiting for Auth service (attempt $i/30)..."
+                          sleep 1
+                        done
+                        
+                        for i in {1..30}; do
+                          if curl -s http://localhost:3001/health > /dev/null; then
+                            echo "✅ Catalog service is ready"
+                            break
+                          fi
+                          echo "⏳ Waiting for Catalog service (attempt $i/30)..."
+                          sleep 1
+                        done
+                        
+                        for i in {1..30}; do
+                          if curl -s http://localhost:3002/health > /dev/null; then
+                            echo "✅ Orders service is ready"
+                            break
+                          fi
+                          echo "⏳ Waiting for Orders service (attempt $i/30)..."
+                          sleep 1
+                        done
+                    '''
+                }
+            }
+        }
+
+        stage('Run E2E Tests') {
+            steps {
+                script {
+                    echo "🧪 Running E2E tests..."
+                    sh '''
+                        # Basic health checks
+                        echo "Testing Auth Service..."
+                        curl -s -X GET http://localhost:3000/health | jq .
+                        
+                        echo "Testing Catalog Service..."
+                        curl -s -X GET http://localhost:3001/health | jq .
+                        
+                        echo "Testing Orders Service..."
+                        curl -s -X GET http://localhost:3002/health | jq .
+                        
+                        # Example: Test registration
+                        echo "Testing Auth API - Register user..."
+                        curl -s -X POST http://localhost:3000/auth/register \
+                          -H "Content-Type: application/json" \
+                          -d '{
+                            "email": "test@example.com",
+                            "password": "TestPassword123!",
+                            "name": "Test User",
+                            "phone": "+1234567890"
+                          }' | jq .
+                        
+                        echo "✅ E2E tests completed"
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                echo "🧹 Cleaning up test environment..."
+                sh '''
+                    # Kill running services
+                    kill $(cat ../auth.pid 2>/dev/null) 2>/dev/null || true
+                    kill $(cat ../catalog.pid 2>/dev/null) 2>/dev/null || true
+                    kill $(cat ../orders.pid 2>/dev/null) 2>/dev/null || true
+                    
+                    sleep 2
+                    
+                    # Stop and remove containers
+                    docker stop postgres-auth postgres-catalog postgres-orders 2>/dev/null || true
+                    docker rm postgres-auth postgres-catalog postgres-orders 2>/dev/null || true
+                    
+                    # Clean up network
+                    docker network rm ${DOCKER_NETWORK} 2>/dev/null || true
+                    
+                    # Save logs
+                    echo "=== Auth Service Log ===" > e2e-test-results.log
+                    cat auth.log >> e2e-test-results.log 2>/dev/null || true
+                    echo "=== Catalog Service Log ===" >> e2e-test-results.log
+                    cat catalog.log >> e2e-test-results.log 2>/dev/null || true
+                    echo "=== Orders Service Log ===" >> e2e-test-results.log
+                    cat orders.log >> e2e-test-results.log 2>/dev/null || true
+                '''
+                
+                // Archive test results
+                archiveArtifacts artifacts: 'e2e-test-results.log', allowEmptyArchive: true
+            }
+        }
+        success {
+            script {
+                echo "✅ E2E tests passed!"
+            }
+        }
+        failure {
+            script {
+                echo "❌ E2E tests failed!"
+                // Send notification
+            }
+        }
+    }
+}

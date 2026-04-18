@@ -8,8 +8,6 @@ Un **service d'authentification production-ready** a été créé avec tous les 
 
 ```
 auth/
-├── .github/workflows/
-│   └── ci-cd.yml                # Pipeline CI/CD automatique
 ├── src/
 │   ├── config/
 │   │   ├── constants.ts         # Messages d'erreur et codes HTTP
