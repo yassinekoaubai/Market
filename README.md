@@ -1,138 +1,106 @@
 # Market
 
-Market is a full-stack e-commerce project split into two main applications:
+Market is a full-stack e-commerce platform with a React frontend and a Node.js microservices backend.
 
-- Frontend: React + Vite client app
-- Backend: Node.js + TypeScript microservices (Auth, Catalog, Orders)
+## Architecture
 
-## Project Structure
+- frontEnd: React + Vite client application
+- backEnd/auth: authentication and token lifecycle
+- backEnd/catalog: products and categories
+- backEnd/orders: cart and order workflows
 
-```text
-Market/
-├── frontEnd/      # UI application
-└── backEnd/       # API microservices + databases
-```
+Each backend service has its own PostgreSQL database and Prisma schema.
 
-## Frontend
+## Tech Stack
 
-Location: `frontEnd/`
+- Frontend: React 18, Vite 6, Tailwind CSS 4, MUI, Radix UI
+- Backend: Node.js 20+, TypeScript, Express 5, Prisma, PostgreSQL
+- DevOps: Docker Compose, Jenkins pipelines
 
-### What it does
+## Prerequisites
 
-- Renders the user interface
-- Handles navigation and user interactions
-- Calls backend services through API URLs
+- Node.js 20 or newer
+- npm 10 or newer
+- Docker and Docker Compose (optional, recommended for quick start)
 
-### Tech stack
+## Quick Start
 
-- React 18
-- Vite 6
-- Tailwind CSS 4
-- MUI and Radix UI component libraries
+### Option A: Docker (fastest)
 
-### Run frontend locally
+1. Start backend services:
 
-```bash
-cd frontEnd
-npm install
-npm run dev
-```
+  ```bash
+  cd backEnd
+  docker compose up --build
+  ```
 
-Default dev URL is usually `http://localhost:5173`.
+2. Start frontend:
 
-### Run frontend with Docker
+  ```bash
+  cd ../frontEnd
+  docker compose up --build
+  ```
 
-```bash
-cd frontEnd
-docker compose up --build
-```
+Application URLs:
 
-This serves the frontend on `http://localhost:4173`.
+- Frontend: http://localhost:4173
+- Auth API: http://localhost:3000
+- Catalog API: http://localhost:3001
+- Orders API: http://localhost:3002
 
-Frontend build-time API variables:
+### Option B: Local development
 
-- `VITE_AUTH_API_URL` (default: `http://localhost:3000`)
-- `VITE_CATALOG_API_URL` (default: `http://localhost:3001`)
-- `VITE_ORDERS_API_URL` (default: `http://localhost:3002`)
+1. Install backend service dependencies:
 
-## Backend
+  ```bash
+  cd backEnd
+  npm run install:services
+  ```
 
-Location: `backEnd/`
+2. Start backend services in separate terminals:
 
-### What it does
+  ```bash
+  npm run dev:auth
+  npm run dev:catalog
+  npm run dev:orders
+  ```
 
-The backend is organized as microservices:
+3. Start frontend:
 
-- Auth service (port `3000`): authentication and JWT
-- Catalog service (port `3001`): product and category management
-- Orders service (port `3002`): cart and order workflows
+  ```bash
+  cd ../frontEnd
+  npm install
+  npm run dev
+  ```
 
-Each service uses PostgreSQL and Prisma.
+Local frontend URL: http://localhost:5173
 
-### Services and ports
+## Service Ports
 
-- `auth` -> API `3000`, Postgres `5432`
-- `catalog` -> API `3001`, Postgres `5433`
-- `orders` -> API `3002`, Postgres `5434`
+- auth API: 3000, database: 5432
+- catalog API: 3001, database: 5433
+- orders API: 3002, database: 5434
 
-### Run backend locally (service-by-service)
+## Health Checks
 
-Install dependencies:
+- http://localhost:3000/health
+- http://localhost:3001/health
+- http://localhost:3002/health
 
-```bash
-cd backEnd/auth && npm install
-cd ../catalog && npm install
-cd ../orders && npm install
-```
+## Environment Variables
 
-Start services in separate terminals:
+Frontend build-time API endpoints:
 
-```bash
-cd backEnd/auth && npm run dev
-cd backEnd/catalog && npm run dev
-cd backEnd/orders && npm run dev
-```
+- VITE_AUTH_API_URL (default: http://localhost:3000)
+- VITE_CATALOG_API_URL (default: http://localhost:3001)
+- VITE_ORDERS_API_URL (default: http://localhost:3002)
 
-Useful database commands inside each service:
+Service-level environment files and examples are documented in each service README.
 
-- `npm run db:migrate`
-- `npm run db:push`
-- `npm run db:reset`
-- `npm run db:studio`
-- `npm run generate`
+## Documentation
 
-### Run backend with Docker
-
-```bash
-cd backEnd
-docker-compose up --build
-```
-
-This starts:
-
-- 3 Postgres containers
-- 3 API service containers
-
-## End-to-end local flow
-
-1. Start backend services first (`backEnd/`).
-2. Start frontend (`frontEnd/`).
-3. Open the UI on `http://localhost:5173` (or `4173` if using frontend Docker).
-4. Frontend sends requests to Auth/Catalog/Orders APIs.
-
-## API Health Checks
-
-Use these to verify services are running:
-
-- `http://localhost:3000/health`
-- `http://localhost:3001/health`
-- `http://localhost:3002/health`
-
-## Notes
-
-- Backend service-specific details are available in:
-  - `backEnd/auth/README.md`
-  - `backEnd/catalog/README.md`
-  - `backEnd/orders/README.md`
-- Frontend details are available in:
-  - `frontEnd/README.md`
+- Root backend guide: backEnd/README.md
+- Frontend guide: frontEnd/README.md
+- Auth service: backEnd/auth/README.md
+- Catalog service: backEnd/catalog/README.md
+- Orders service: backEnd/orders/README.md

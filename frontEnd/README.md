@@ -1,21 +1,59 @@
+# Market Frontend
 
-  # Ecommerce app with signup
+Frontend application for the Market e-commerce platform.
 
-  This is a code bundle for Ecommerce app with signup. The original project is available at https://www.figma.com/design/WOAyF7qyyVWptnqNDxczBV/Ecommerce-app-with-signup.
+## Overview
 
-  ## Running the code
+This app is built with React and Vite, and communicates with the backend microservices:
 
-  Run `npm i` to install the dependencies.
+- auth service
+- catalog service
+- orders service
 
-  Run `npm run dev` to start the development server.
+## Stack
 
-  ## Docker
+- React 18
+- Vite 6
+- Tailwind CSS 4
+- MUI and Radix UI components
 
-  Build and run the containerized frontend with:
+## Local Development
 
-  ```bash
-  docker compose up --build
-  ```
+1. Install dependencies:
 
-  The container serves the app on port 4173 and bakes the backend API URLs into the Vite build. Override `VITE_AUTH_API_URL`, `VITE_CATALOG_API_URL`, and `VITE_ORDERS_API_URL` if your backend is not running on the local default ports.
-  
+   ```bash
+   npm install
+   ```
+
+2. Start development server:
+
+   ```bash
+   npm run dev
+   ```
+
+Default URL: http://localhost:5173
+
+## Production Build
+
+- npm run build
+- npm run preview
+
+## Docker
+
+Build and run:
+
+```bash
+docker compose up --build
+```
+
+Container URL: http://localhost:4173
+
+## Environment Variables
+
+Vite reads the following build-time variables:
+
+- VITE_AUTH_API_URL (default: http://localhost:3000)
+- VITE_CATALOG_API_URL (default: http://localhost:3001)
+- VITE_ORDERS_API_URL (default: http://localhost:3002)
+
+Set these values before running build or docker compose if backend services use different hosts or ports.

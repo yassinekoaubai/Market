@@ -1,11 +1,13 @@
 {
-  "name": "@figma/my-make-file",
+  "name": "market-frontend",
   "private": true,
   "version": "0.0.1",
+  "description": "Market frontend application",
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
